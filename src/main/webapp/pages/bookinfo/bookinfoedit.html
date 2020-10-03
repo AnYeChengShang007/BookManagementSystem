@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="../../scripts/boot.js" type="text/javascript"></script>
+<style type="text/css">
+html, body {
+	padding: 0;
+	margin: 0;
+	border: 0;
+	height: 100%;
+	overflow: hidden;
+}
+</style>
+
+</head>
+<body>
+	<form id="form1" method="post">
+		<fieldset style="border: solid 1px #aaa; padding: 3px;">
+			<legend>新增图书信息</legend>
+			<div style="padding: 5px;"></div>
+			<table>
+				<tr>
+					<td style="display: none"><input name="bookid" id="bookid"
+						class="mini-textbox"/></td>
+					<td style="width: 80px;">图书名称：</td>
+					<td style="width: 150px;"><input name="bookname" id="bookname"
+						onBlur="checkAuthor" class="mini-textbox" readonly="true" /></td>
+					<td style="width: 80px;">出版社：</td>
+					<td style="width: 150px;"><input name="publisher"
+						class="mini-textbox" required="true" /></td>
+				</tr>
+				<tr>
+					<td style="width: 80px;">作者：</td>
+					<td style="width: 150px;"><input name="author"
+						onBlur="checkAuthor" id="author" class="mini-textbox"
+						readonly="true" /></td>
+					<td style="width: 80px;">图书类别：</td>
+					<td><input name="booktype" onenter="onKeyEnter"
+						emptyText="请选择类别" required="true" class="mini-combobox"
+						url="/data/category.txt" valueField="id" textField="text" /></td>
+				</tr>
+				<tr>
+					<td style="width: 80px;">剩余数量：</td>
+					<td style="width: 150px;"><input name="remain" vtype="int"
+						onvalidation="onNumberValidation" class="mini-textbox"
+						readonly="true" /></td>
+				</tr>
+			</table>
+		</fieldset>
+		<div style="text-align: center; padding: 10px;">
+			<a class="mini-button" onclick="onOk"
+				style="width: 60px; margin-right: 20px;">确定</a> <a
+				class="mini-button" onclick="onCancel" style="width: 60px;">取消</a>
+		</div>
+	</form>
+	<script type="text/javascript">
+		mini.parse();
+
+		var form = new mini.Form("form1");
+		function SaveData() {
+			var o = form.getData();
+
+			form.validate();
+			if (form.isValid() == false)
+				return;
+
+			var json = mini.encode(o);
+			$.ajax({
+				url : "/bookinfolist?method=update",
+				type : 'post',
+				data : {
+					data : json
+				},
+				cache : false,
+				success : function(text) {
+					mini.confirm(text, "提示", function() {
+						CloseWindow("save");
+					})
+				},
+			});
+		}
+		function CloseWindow(action) {
+			if (window.CloseOwnerWindow)
+				return window.CloseOwnerWindow(action);
+			else
+				window.close();
+		}
+
+		function onOk(e) {
+			SaveData();
+		}
+
+		function checkAuthor() {
+			var author = mini.get("author").value;
+			var bookname = mini.get("bookname").value;
+			if (bookname != '' && author != '') {
+				$.ajax({
+					url : "/bookinfolist?method=checkbookname",
+					type : 'post',
+					data : {
+						bookname : bookname,
+						author : author
+					},
+					cache : false,
+					success : function(text) {
+						if (text == 'true') {
+							mini.alert("一个作者不能有两本书名一样的书");
+							mini.get("bookname").setValue("");
+						}
+					},
+				});
+			}
+		}
+
+		function onNumberValidation(e) {
+			if (e.value <= 0) {
+				e.errorText = "必须为正整数";
+				e.isValid = false;
+			}
+		}
+
+		setData();
+		function setData() {
+			var str = location.search.substr(1);
+			var bookid = str.split("&")[0].substr(7);
+			$.ajax({
+				url : "/bookinfolist?method=getone&bookid=" + bookid,
+				cache : false,
+				success : function(text) {
+					var o = mini.decode(text);
+					form.setData(o);
+				}
+			});
+		}
+		
+		function onCancel(e) {
+			CloseWindow("cancel");
+		}
+	</script>
+</body>
+</html>

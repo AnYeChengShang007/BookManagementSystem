@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>图书信息管理</title>
+<script src="../../scripts/boot.js" type="text/javascript"></script>
+<style type="text/css">
+html, body {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.red {
+	color: red;
+}
+</style>
+</head>
+<body>
+	<div class="mini-toolbar" style="padding: 2px; border-bottom: 0;">
+		<table style="width: 100%;">
+			<tr>
+				<td style="width: 100%;"><a class="mini-button" onclick="add"
+					iconCls="icon-save" plain="true">新增</a></td>
+				<td style="white-space: nowrap;"><input emptyText="请输入图书名称"
+					id="bookname" class="mini-textbox" /> <input name="booktype"
+					onenter="onKeyEnter" emptyText="请选择类别" id="booktype"
+					class="mini-combobox" url="../../data/category.txt" valueField="id"
+					textField="text" onenter="onKeyEnter" /> <a class="mini-button"
+					iconCls="icon-search" plain="true" onclick="onSearch()">查询</a></td>
+			</tr>
+		</table>
+	</div>
+	<div class="mini-fit">
+
+		<div id="datagrid1" class="mini-datagrid"
+			style="width: 100%; height: 100%;" url="/bookinfolist"
+			sizeList="[5,10,20,50]" pageSize="10">
+			<div property="columns">
+				<div type="indexcolumn"></div>
+				<div field="bookid" width="350" headerAlign="center" align="center"
+					allowSort="true">图书编号</div>
+				<div field="bookname" width="100%" headerAlign="center"
+					align="center" allowSort="true">图书名称</div>
+				<div field="publisher" width="100%" headerAlign="center"
+					align="center" allowSort="true">出版社</div>
+				<div field="author" width="100%" headerAlign="center" align="center"
+					allowSort="true">作者</div>
+				<div field="booktype" width="120" headerAlign="center" renderer="aaaa"
+					align="center" >图书类别</div>
+				<div field="remain" width="100%" headerAlign="center" align="center"
+					allowSort="true" renderer="onNumberRenderer">剩余数量</div>
+				<div width="100%" headerAlign="center" align="center"
+					renderer="onActionRenderer">操作按钮</div>
+			</div>
+		</div>
+
+	</div>
+	<script type="text/javascript">
+		mini.parse();
+		var grid = mini.get("datagrid1");
+		grid.load();
+
+		function onNumberRenderer(e) {
+			if (e.value < 10) {
+				e.cellCls = "red";
+			}
+			return e.value;
+		}
+		function onActionRenderer(e) {
+			var grid = e.sender;
+			var record = e.record;
+			var uid = record._uid;
+			var rowIndex = e.rowIndex;
+
+			var s = '<a class="mini-button" href="javascript:editRow(\'' + uid
+					+ '\')">修改</a> '
+					+ '<a class="mini-button" href="javascript:delRow(\'' + uid
+					+ '\')">删除</a> '
+					+ '<a class="mini-button" href="javascript:lend(\'' + uid
+					+ '\')">借阅</a> '
+					+ '<a class="mini-button" href="javascript:showDetail(\''
+					+ uid + '\')">详情</a> ';
+			return s;
+		}
+		function onSearch() {
+			var booktype = mini.get("booktype").value;
+			var bookname = mini.get("bookname").value;
+			grid.load({
+				booktype : booktype,
+				bookname : bookname
+			});
+		}
+		function onKeyEnter(e) {
+			onSearch();
+		}
+		function add() {
+			mini.open({
+				url : "/pages/bookinfo/bookinfoadd.html",
+				title : "新增图书信息",
+				width : 600,
+				height : 400,
+				allowResize : false,
+				onload : function() {
+				},
+				ondestroy : function(action) {
+					grid.reload();
+				}
+			});
+		}
+
+		function editRow(uid) {
+			var bookid = grid.getRowByUid(uid).bookid;
+			mini.open({
+				url : "/pages/bookinfo/bookinfoedit.html?bookid=" + bookid,
+				title : "修改图书信息",
+				width : 600,
+				height : 400,
+				allowResize : false,
+				onload : function() {
+				},
+				ondestroy : function(action) {
+					grid.reload();
+				}
+			});
+		}
+
+		function lend(uid) {
+			var bookid = grid.getRowByUid(uid).bookid;
+			mini.open({
+				url : "/pages/borrowinfo/borrowinfoadd.html?bookid=" + bookid,
+				title : "新增借书信息",
+				width : 600,
+				height : 400,
+				allowResize : false,
+				onload : function() {
+				},
+				ondestroy : function(action) {
+					grid.reload();
+				}
+			});
+		}
+
+		function showDetail(uid) {
+			var bookid = grid.getRowByUid(uid).bookid;
+			mini.open({
+				url : "/pages/bookinfo/bookinfodetail.html?bookid=" + bookid,
+				title : "图书详细信息",
+				width : 600,
+				height : 200,
+				allowResize : false,
+				onload : function() {
+				},
+				ondestroy : function(action) {
+					grid.reload();
+				}
+			});
+		}
+
+		function CloseWindow(action) {
+			if (window.CloseOwnerWindow)
+				return window.CloseOwnerWindow(action);
+			else
+				window.close();
+		}
+
+		function delRow(uid) {
+			var bookid = grid.getRowByUid(uid).bookid;
+			var bookname = grid.getRowByUid(uid).bookname;
+			mini.confirm("确定删除吗", "提示", function(e) {
+				if (e == 'ok') {
+					$.ajax({
+						url : "/borrowinfolist?method=checkborrow&bookid="
+								+ bookid,
+						type : 'get',
+						success : function(text) {
+							if (text == 'false') {
+								mini.alert(bookname+"存在未归还信息，无法删除");
+							} else {
+
+								$.ajax({
+									url : "/bookinfolist?method=del&bookid="
+											+ bookid,
+									type : 'get',
+									success : function(text) {
+										mini.confirm(bookname+text, "提示", function() {
+											CloseWindow("save");
+											grid.reload();
+										})
+									},
+								});
+
+							}
+						},
+					});
+				}
+			})
+		}
+		
+		function aaaa(e){
+			var data = '';
+			$.ajax({
+				url:"../../data/category.txt",
+				async:false,
+				success:function(res){
+					var list = mini.decode(res);
+					console.log(list)
+					 for (var i = 0, l = list.length; i < l; i++) {
+			                var g = list[i];
+			                console.log(g.id + ":" +e.value)
+			                if (g.id == e.value) 
+			                	data =  g.text;
+			            }
+
+				}
+				
+			})
+			return data;
+		}
+	</script>
+</body>
+</html>

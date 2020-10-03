@@ -1,0 +1,5 @@
+[
+	{ id: "user", text: "图书管理系统", iconCls: "icon-add"},
+	{ id: "addUser", pid: "user", text: "图书信息管理", iconCls: "icon-add", url: "/pages/bookinfo/bookinfolist.html" },
+	{ id: "editUser", pid: "user", text: "借阅信息管理", iconCls: "icon-edit", url: "/pages/borrowinfo/borrowinfolist.html" },
+]
